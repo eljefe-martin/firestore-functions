@@ -1,0 +1,51 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /{document=**} {
+      allow read, write: if false;
+    }
+    
+    
+    match /agencies/{agencyId} {
+    	allow read: if isAgencyAgent(agencyId);
+    	allow write: if isAgencyAdmin();
+    }
+    
+    match /agencies/{agencyId}/leads/{leadId} {
+    	allow read, write: if isAgencyAgent(agencyId);
+    }
+    
+       
+    match /agencies/{agencyId}/users/{userId} {
+    	allow read: if isAgencyAgent(agencyId) || isAgencyAdmin();
+      allow write: if (isAgencyAgent(agencyId) && request.auth.uid == userId) || isAgencyAdmin();
+    }
+    
+    match /pendingUsers/{userId} {
+    	allow read, write: if isOwner(userId);
+    }
+    
+    //full access
+    match /{document=**} {
+    	allow read, write: if request.auth.token.qroot == true;
+    }
+    
+    //functions
+    function isSignedIn() {
+    	return request.auth != null;
+    }
+    
+    function isOwner(userId) {
+    	return request.auth.uid == userId
+    }
+    
+    function isAgencyAgent(agencyId){
+    	return request.auth.token.agencyId == agencyId;
+    }
+    
+    function isAgencyAdmin() {
+    	return request.auth.token.agencyAdmin == true; 
+    }
+    
+  }//closing brace of main doc
+}
